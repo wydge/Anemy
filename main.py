@@ -2,15 +2,19 @@
 import cv2
 import numpy as np
 from PIL import Image
+from datetime import datetime
+
+width = 640 #larghezza standard raspberry
+height = 480 # altezza standard raspberry
 def bozza_test_camera():
     cam = cv2.VideoCapture(0)
-
     cv2.namedWindow("test")
-
-    img_counter = 0
-
     while True:
         ret, frame = cam.read()
+        dim = (width,height)
+        frame = cv2.resize(frame,dim,interpolation=cv2.INTER_AREA)
+        #frame = cv2.copyMakeBorder(frame, 5, 5, 5, 5, cv2.BORDER_ISOLATED, value=[0, 200, 200])
+        cv2.rectangle(frame,(640,140),(0,340),(0,255,0),4)   #600 indica l'altezza destra del rettangolo 200 la base al basso del rettangolo e gli altri due i restanti
         if not ret:
             print("Impossibile catturare l'immagine")
             break
@@ -23,13 +27,19 @@ def bozza_test_camera():
             break
         elif k == ord(' '):
             # SPACE per scattare la foto
-            img_name = "foto_{}.jpg".format(img_counter)
-            cv2.imwrite(img_name, frame)
+            now = datetime.now()
+            date = now.strftime("%Y-%m-%d_at")
 
+            time = now.strftime("_%H.%M.%S")#rinomino la foto in base alla data di oggi e all'orario
+            mese_orario= date + time
+            img_name = "analysis_of_{}.jpg".format(mese_orario)
+
+            cv2.imwrite(img_name, frame)
+            CutPhoto(img_name)
             print("{} written!".format(img_name))
             cattura = cv2.imread(img_name)
-            img_processing_image(cattura,img_counter)
-            img_counter += 1
+            img_processing_image(cattura,1)#metto 1 solo perchè è un testing, poi non servirà più
+
             # break  mettendo questo ti scatta solo una foto e poi ti chiude la finestra direttamente, l'ho tolto cosi è possibile fare più scatti
     cam.release()
     cv2.destroyAllWindows()
@@ -49,17 +59,17 @@ def img_processing_image(img2, i):
     a_filtrate=np.empty((n_pixel))
     for x in range(0,rows):
        for y in range(0,columns):
-           if a_channel[x][y] != 42 :
+           if a_channel[x][y] != 42 :#42 è il colore verde sulla cromatura a* di opencv( in realta dovrebbe essere -128)
                if a_channel[x][y] < 128 or a_channel[x][y] > 148:
                 a_filtrate[i] = a_channel[x][y]
-                i   = i + 1
+                i= i + 1
 
 
     a_palpebra=a_filtrate[0:i]#matrice della palpebra
     a_star= np.average(a_palpebra)
-    a_star=(a_star-128)*2
+    a_star=(a_star-128)*2 #moltiplico per 2 perchè cosi è vicino al valore dell hb
 
-    print("VETTORE FILTRATO")
+    print("A STAR NEL VETTORE FILTRATO")
     print(a_star)
     print("N ELEMENTI FILTRATI")
     print(i)
@@ -75,13 +85,19 @@ def img_processing_image(img2, i):
     a = a - 128 #valore preciso di a*
     print(a)
     cv2.imshow("Result"+risultato, img2)
+def CutPhoto(img):#ritaglia il suddetto riquadro verde dell'immagine
+    im = Image.open(img)
+    im1 = im.crop((4, 144, 637, 313))  # left,top,right,bottom
+    im1.save(img)
 
-img2 = cv2.imread('result.png')
-img_processing_image(img2,10)
+
+
+img2 = cv2.imread('proviamo2.JPG')
+#img_processing_image(img2,10)
 bozza_test_camera()
 
 """""
-img = Image.open('108.JPG')
+img = Image.open('07.jpg')
 img = img.convert("RGBA")
 datas = img.getdata()
 
@@ -100,7 +116,7 @@ img.save("img3.png", "PNG")
 rgba = np.array(Image.open('img3.png'))
 
 # Make image transparent white anywhere it is transparent
-rgba[rgba[...,-1]==0] = [0,255,0,255]
+rgba[rgba[...,-1]==0] = [0,255,0,255] #inserisco lo sfondo verde ma anche con sfondo bianco funziona discretamente
 
 # Make back into PIL Image and save
 Image.fromarray(rgba).save('result.png')
