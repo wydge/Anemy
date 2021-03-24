@@ -14,7 +14,8 @@ def bozza_test_camera():
         dim = (width,height)
         frame = cv2.resize(frame,dim,interpolation=cv2.INTER_AREA)
         #frame = cv2.copyMakeBorder(frame, 5, 5, 5, 5, cv2.BORDER_ISOLATED, value=[0, 200, 200])
-        cv2.rectangle(frame,(640,140),(0,340),(0,255,0),4)   #600 indica l'altezza destra del rettangolo 200 la base al basso del rettangolo e gli altri due i restanti
+        #cv2.rectangle(frame,(640,140),(0,340),(0,255,0),4)   #600 indica l'altezza destra del rettangolo 200 la base al basso del rettangolo e gli altri due i restanti
+        cv2.rectangle(frame, (440, 140), (200, 340), (0, 255, 0), 4)
         if not ret:
             print("Impossibile catturare l'immagine")
             break
@@ -71,23 +72,25 @@ def img_processing_image(img2, i):
 
     print("A STAR NEL VETTORE FILTRATO")
     print(a_star)
+    a = np.average(a_channel)  # valore medio di a, che dovrebbe (credo) essere il valore che ci serve
+    a = a - 128  # valore preciso di a*
+    print("A STAR SENZA FILTRAGGIO")
+    print(a)
     print("N ELEMENTI FILTRATI")
     print(i)
-    print("NUMERO PIXEL VALUTATI")
+    print("NUMERO PIXEL TOTALI")
     print(n_pixel)
-    print("A CROMATURA")
-    print (a_channel)
+   # print("A CROMATURA")
+   # print (a_channel)
    # print("B CROMATURA")
    # print( b_channel)
    # b=np.average(b_channel)
    # print(b)
-    a = np.average(a_channel)#valore medio di a, che dovrebbe (credo) essere il valore che ci serve
-    a = a - 128 #valore preciso di a*
-    print(a)
+
     cv2.imshow("Result"+risultato, img2)
 def CutPhoto(img):#ritaglia il suddetto riquadro verde dell'immagine
     im = Image.open(img)
-    im1 = im.crop((4, 144, 637, 313))  # left,top,right,bottom
+    im1 = im.crop((204, 144, 435, 335))  # left,top,right,bottom
     im1.save(img)
 
 
