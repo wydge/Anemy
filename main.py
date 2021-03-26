@@ -3,12 +3,37 @@ import cv2
 import numpy as np
 from PIL import Image
 from datetime import datetime
-
+from flask import Flask, render_template, Response, request
 width = 640 #larghezza standard raspberry
 height = 480 # altezza standard raspberry
+cam = cv2.VideoCapture(0)
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    # rendering webpage
+    return render_template('index.html')
+def gen_frames():
+
+
+    while True:
+        dim = (width, height)
+        success, frame = cam.read()  # read the camera frame
+        frame = cv2.resize(frame, dim, interpolation=cv2.INTER_AREA)
+        cv2.rectangle(frame, (440, 140), (200, 340), (0, 255, 0), 4)
+        if not success:
+            break
+        else:
+            ret, buffer = cv2.imencode('.jpg', frame)
+
+
+            frame = buffer.tobytes()
+            yield (b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')  # concat frame one by one and show result
+
 def bozza_test_camera():
-    cam = cv2.VideoCapture(0)
-    cv2.namedWindow("test")
+
+    #cv2.namedWindow("test")
     while True:
         ret, frame = cam.read()
         dim = (width,height)
@@ -19,7 +44,8 @@ def bozza_test_camera():
         if not ret:
             print("Impossibile catturare l'immagine")
             break
-        cv2.imshow("test", frame)
+        #cv2.imshow("test", frame)
+
 
         k = cv2.waitKey(1)
         if k % 256 == 27:
@@ -61,66 +87,50 @@ def img_processing_image(img2, i):
     for x in range(0,rows):
        for y in range(0,columns):
            if a_channel[x][y] != 42 :#42 è il colore verde sulla cromatura a* di opencv( in realta dovrebbe essere -128)
-               if a_channel[x][y] < 128 or a_channel[x][y] > 148:
+               if a_channel[x][y] < 128 or a_channel[x][y] > 148 :
                 a_filtrate[i] = a_channel[x][y]
                 i= i + 1
 
 
     a_palpebra=a_filtrate[0:i]#matrice della palpebra
     a_star= np.average(a_palpebra)
-    a_star=(a_star-128)*2 #moltiplico per 2 perchè cosi è vicino al valore dell hb
+    a_star=a_star-128 # Valore medio di a su vettore filtrato sulla palpebra
+    #print(a_star)
 
-    print("A STAR NEL VETTORE FILTRATO")
-    print(a_star)
     a = np.average(a_channel)  # valore medio di a, che dovrebbe (credo) essere il valore che ci serve
     a = a - 128  # valore preciso di a*
-    print("A STAR SENZA FILTRAGGIO")
-    print(a)
-    print("N ELEMENTI FILTRATI")
-    print(i)
-    print("NUMERO PIXEL TOTALI")
-    print(n_pixel)
-   # print("A CROMATURA")
-   # print (a_channel)
-   # print("B CROMATURA")
-   # print( b_channel)
-   # b=np.average(b_channel)
-   # print(b)
+
 
     cv2.imshow("Result"+risultato, img2)
 def CutPhoto(img):#ritaglia il suddetto riquadro verde dell'immagine
     im = Image.open(img)
     im1 = im.crop((204, 144, 435, 335))  # left,top,right,bottom
     im1.save(img)
+@app.route('/video_feed') #per il response con la pagina html
+def video_feed():
+    return Response(gen_frames(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
+@app.route('/takeimage', methods = ['POST'])
+def takeimage():
+    name = request.form['name']
+    print(name)
+    _, frame = cam.read()
+    now = datetime.now()
+    date = now.strftime("%Y-%m-%d_at")
 
+    time = now.strftime("_%H.%M.%S")  # rinomino la foto in base alla data di oggi e all'orario
+    mese_orario = date + time
+    img_name = "analysis_of_{}.jpg".format(mese_orario)
 
-
-img2 = cv2.imread('proviamo2.JPG')
+    cv2.imwrite(img_name, frame)
+    CutPhoto(img_name)
+    print("{} written!".format(img_name))
+    return Response(status = 200)
+@app.route('/AnalisiFoto', methods = ['POST'])
+def AnalisiFoto():
+    return Response("Ciao")
+#img2 = cv2.imread('prova1.jpg')
 #img_processing_image(img2,10)
-bozza_test_camera()
-
-"""""
-img = Image.open('07.jpg')
-img = img.convert("RGBA")
-datas = img.getdata()
-
-newData = []
-for item in datas:
-   if item[0] == 255 and item[1] == 255 and item[2] == 255:
-       newData.append((255, 255, 255, 0))
-   else:
-     newData.append(item)
-
-img.putdata(newData)
-img.save("img3.png", "PNG")
-
-
-# Load the image and make into Numpy array
-rgba = np.array(Image.open('img3.png'))
-
-# Make image transparent white anywhere it is transparent
-rgba[rgba[...,-1]==0] = [0,255,0,255] #inserisco lo sfondo verde ma anche con sfondo bianco funziona discretamente
-
-# Make back into PIL Image and save
-Image.fromarray(rgba).save('result.png')
-"""""
+#bozza_test_camera()
+if __name__ == "__main__": #per inizializzare il server locale
+    app.run(debug=True)

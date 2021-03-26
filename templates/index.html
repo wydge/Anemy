@@ -1,0 +1,35 @@
+<body>
+  <head>
+
+    <title>Video Streaming Demonstration</title>
+  </head>
+  <body>
+    <h1>Video Streaming Demonstration</h1>
+    <h2>
+    <p align="center"><img src="{{ url_for('video_feed') }}"> </p>
+
+     <p align="center "><input  value="Scatta foto " type="button" style="height: 50px; width: 200px;" onclick="onScatta()" type="button" align="right" /></p>
+     <p align="center "><input  value="Analizza " type="button" style="height: 50px; width: 200px;" onclick="onAnalizza()" type="button" align="right"/></p>
+   </h2>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.1/jquery.min.js"></script>
+     <script>
+function onScatta() {
+//var name = document.getElementById("input").value;
+  $.post("/takeimage",
+   {
+     name: "cliccatotake"
+   },
+   function(data, status){
+     alert("Data: " + data + "\nStatus: " + status);
+   });
+}
+function onAnalizza(){
+    $.POST("/AnalisiFoto",
+    {
+        name: "cliccatoAnalisi"
+    },
+    )
+}
+</script>
+  </body>
+</body>
